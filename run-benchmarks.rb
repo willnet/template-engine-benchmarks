@@ -9,22 +9,27 @@ gemfile do
   gem 'slim'
   gem 'haml'
   gem 'erubi'
+  gem 'phlex'
 end
 
+require_relative 'phlex_view'
+
 class TemplateEngineBenchmarks
+  attr_reader :context
+
   def initialize
     @benches   = []
 
     @erb_code  = File.read(File.dirname(__FILE__) + '/view.erb')
     @haml_code = File.read(File.dirname(__FILE__) + '/view.haml')
     @slim_code = File.read(File.dirname(__FILE__) + '/view.slim')
-
+    @context = Context.new
     init_compiled_benches
   end
 
-  def init_compiled_benches
-    context = Context.new
+  def run_phlex; PhlexView.call(context:); end
 
+  def init_compiled_benches
     context.instance_eval %{
       def run_erubi; #{Erubi::Engine.new(@erb_code).src}; end
       def run_slim; #{Slim::Engine.new.call(@slim_code)}; end
@@ -34,6 +39,7 @@ class TemplateEngineBenchmarks
     bench("erubi v#{Erubi::VERSION}") { context.run_erubi }
     bench("slim v#{Slim::VERSION}")   { context.run_slim }
     bench("haml v#{Haml::VERSION}")   { context.run_haml }
+    bench("phlex v#{Phlex::VERSION}") { run_phlex }
   end
 
   def run
